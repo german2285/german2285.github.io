@@ -1,700 +1,215 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>XP Calculator (React)</title>
-  <!-- React и ReactDOM из CDN (нужен интернет) -->
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <meta charset="UTF-8">
+  <title>TextPressure без React – Центрированный текст</title>
   <style>
-    * {
-      box-sizing: border-box;
-      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-      font-family: sans-serif;
+    /* Подключаем шрифт через @font-face */
+    @font-face {
+      font-family: 'Compressa VF';
+      src: url('https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2') format('woff2');
+      font-style: normal;
     }
-    body {
-      margin: 0; 
-      padding: 0;
-    }
-    /* Темы */
-    body.light {
-      background-color: #f2f2f2;
-      color: #333;
-    }
-    body.dark {
-      background-color: #222;
-      color: #ddd;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 20px auto;
-      background: var(--bg-container, #fff);
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .title {
-      font-size: 1.4rem;
-      font-weight: 600;
+    /* Базовые стили для страницы */
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
     }
-    .theme-btn {
-      padding: 6px 10px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fff;
-      font-size: 0.9rem;
-    }
-    body.dark .theme-btn {
-      background: #444;
-      color: #eee;
-      border-color: #555;
-    }
-
-    .section {
-      margin-bottom: 20px;
-    }
-    .label {
-      display: block;
-      font-weight: 600;
-      margin: 8px 0 4px;
-    }
-    .inputField {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      outline: none;
-    }
-    body.dark .inputField {
-      background: #333;
-      color: #ddd;
-      border-color: #555;
-    }
-    .inputField.error {
-      border-color: red !important;
-    }
-
-    .known-points {
-      background: rgba(0,0,0,0.03);
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      margin-top: 10px;
-    }
-    body.dark .known-points {
-      background: #333;
-      border-color: #555;
-    }
-    .kp-item {
+    /* Центрированный контейнер с ограниченной шириной и отступами */
+    .container {
+      position: relative;
+      max-width: 800px;       /* Максимальная ширина контейнера */
+      margin: 0 auto;         /* Центрирование по горизонтали */
+      padding: 20px;          /* Отступы от краёв */
+      height: 100vh;          /* Высота на всю видимую область */
+      box-sizing: border-box; /* Учитываем padding в ширине */
+      background: #000;
       display: flex;
+      justify-content: center;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
     }
-    .kp-buttons button {
-      margin-left: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    .btn-primary {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin: 12px 0;
-      background: #0077FF;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 1rem;
+    /* Стили для заголовка с текстом */
+    .text-pressure-title {
+      font-family: 'Compressa VF', sans-serif;
+      text-transform: uppercase;
+      margin: 0;
       text-align: center;
+      user-select: none;
+      white-space: nowrap;
+      font-weight: 100;
+      width: 100%;
     }
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    /* Если нужно распределить символы по всей ширине контейнера */
+    .flex {
+      display: flex;
+      justify-content: space-between;
     }
-    body.dark .btn-primary {
-      background: #165fc4;
+    /* Стили для эффекта обводки (stroke), если требуется */
+    .stroke span {
+      position: relative;
+      color: #FFFFFF; /* обычный цвет текста */
     }
-
-    .output-area {
-      white-space: pre-wrap;
-      background: #fafafa;
-      padding: 10px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      min-height: 120px;
-      margin-top: 10px;
-    }
-    body.dark .output-area {
-      background: #333;
-      border-color: #555;
-    }
-
-    /* SVG-график */
-    .graph-container {
-      margin-top: 20px;
-      background: #fff2;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      overflow: auto;
-    }
-    body.dark .graph-container {
-      border-color: #555;
-    }
-    .graph-title {
-      margin-bottom: 6px;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
-    /* Адаптив под телефон */
-    @media(max-width: 600px) {
-      .container {
-        margin: 10px;
-        padding: 10px;
-      }
-      .title {
-        font-size: 1.2rem;
-      }
-      .theme-btn {
-        font-size: 0.8rem;
-      }
-      .btn-primary {
-        font-size: 0.9rem;
-      }
+    .stroke span::after {
+      content: attr(data-char);
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: transparent;
+      z-index: -1;
+      -webkit-text-stroke-width: 3px;
+      -webkit-text-stroke-color: #FF0000;
     }
   </style>
 </head>
-<body class="light">
+<body>
+  <div class="container" id="container">
+    <h1 id="textTitle" class="text-pressure-title flex">
+      <!-- Символы будут добавлены через скрипт -->
+    </h1>
+  </div>
 
-<div id="root"></div>
+  <script>
+    // Конфигурация эффекта (при необходимости можно изменить параметры)
+    const config = {
+      text: 'TREEWOOD',              // Текст для отображения
+      fontFamily: 'Compressa VF',
+      fontUrl: 'https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2',
+      width: true,                   // Изменение оси wdth
+      weight: true,                  // Изменение оси wght
+      italic: true,                  // Изменение оси ital
+      alpha: false,                  // Изменение прозрачности (opacity)
+      flex: true,                    // Распределение символов по всей ширине
+      stroke: false,                 // Эффект обводки (если true, применяется псевдоэлемент ::after)
+      scale: false,                  // Масштабирование по высоте (подгонка по контейнеру)
+      textColor: '#FFFFFF',
+      strokeColor: '#FF0000',
+      minFontSize: 24
+    };
 
-<script>
-const { useState, useEffect } = React;
+    // Получаем ссылки на элементы
+    const container = document.getElementById('container');
+    const textTitle = document.getElementById('textTitle');
+    const chars = config.text.split('');
+    const spans = [];
 
-/* --------------------------
-   1. ХРАНЕНИЕ И РЕДАКТИРОВАНИЕ KNOWN POINTS
----------------------------*/
-
-function loadKnownPoints() {
-  // 1) Пробуем взять из localStorage
-  const local = localStorage.getItem("knownPoints_v2");
-  if (local) {
-    try {
-      return JSON.parse(local);
-    } catch(e) { /*ignore*/ }
-  }
-  // 2) Если не вышло - возвращаем "зашитый в код" объект
-  return {
-    8: 1620,
-    42: 9540,
-    49: 11000,
-    55: 12400,
-    59: 13280,
-    60: 13500,
-    75: 16580
-  };
-}
-function saveKnownPoints(obj) {
-  localStorage.setItem("knownPoints_v2", JSON.stringify(obj));
-}
-
-/* --------------------------
-   2. CALCULATE DAYS LEFT (до 28.02.2025)
----------------------------*/
-function calculateDaysLeft() {
-  const now = new Date();
-  // Месяцы: 0=янв, 1=фев, значит фев = 1
-  const target = new Date(2025, 1, 28); 
-  const diff = target - now;
-  const days = Math.floor(diff / (1000*60*60*24));
-  return days > 0 ? days : 0;
-}
-
-/* --------------------------
-   3. CALCULATE LEVEL REQUIREMENTS
----------------------------*/
-function calculateLevelRequirements(xpAtLevel8, baseIncrease, decreasePercent) {
-  const req = {};
-  let curr = xpAtLevel8;
-  let inc = baseIncrease;
-  for (let level = 8; level < 150; level++) {
-    req[level] = Math.round(curr);
-    inc = inc * (1 - decreasePercent / 100);
-    curr += inc;
-  }
-  return req;
-}
-
-/* --------------------------
-   4. FORECAST PROGRESS
----------------------------*/
-function forecastProgress(currentLevel, days, dailyXP, requirements) {
-  let totalXP = days * dailyXP;
-  let spentXP = 0;
-  let lvl = currentLevel;
-  while (lvl in requirements && totalXP >= requirements[lvl]) {
-    totalXP -= requirements[lvl];
-    spentXP += requirements[lvl];
-    lvl++;
-    if (lvl >= 150) { lvl = 150; break; }
-  }
-  const nextReq = requirements[lvl] || 0;
-  const missing = Math.max(0, nextReq - totalXP);
-  return {
-    startLevel: currentLevel,
-    targetLevel: lvl,
-    days_left: days,
-    daily_xp: dailyXP,
-    totalXP: days * dailyXP,
-    spentXP,
-    remainingXP: totalXP,
-    nextLevelRequired: nextReq,
-    missingForNext: missing
-  };
-}
-
-/* --------------------------
-   5. CALCULATE STATS
----------------------------*/
-function calculateStats(req, knownPoints) {
-  const diffs = [];
-  for (let lvlStr in knownPoints) {
-    const realXP = knownPoints[lvlStr];
-    const lvl = parseInt(lvlStr);
-    if (req[lvl] !== undefined) {
-      const calc = req[lvl];
-      const diff = realXP - calc;
-      const absDiff = Math.abs(diff);
-      const dev = (realXP!==0)? diff/realXP*100 : 0;
-      diffs.push({level:lvl, realXP, calcXP:calc, diff, absDiff, deviation:dev});
-    }
-  }
-  if (!diffs.length) return null;
-
-  const minDiff = diffs.reduce((a,b)=> (a.absDiff<b.absDiff ? a : b));
-  const maxDiff = diffs.reduce((a,b)=> (a.absDiff>b.absDiff ? a : b));
-  const avgDiff = diffs.reduce((acc, d)=> acc + d.absDiff, 0)/diffs.length;
-  const sorted = diffs.slice().sort((a,b)=> a.absDiff - b.absDiff);
-  const mid = Math.floor(sorted.length/2);
-  let median;
-  if(sorted.length % 2===0) {
-    median = (sorted[mid-1].absDiff + sorted[mid].absDiff)/2;
-  } else {
-    median = sorted[mid].absDiff;
-  }
-  const variance = diffs.reduce((acc,d)=> acc+Math.pow(d.absDiff-avgDiff,2), 0)/diffs.length;
-  const stdDev = Math.sqrt(variance);
-  const avgDev = diffs.reduce((acc,d)=> acc+Math.abs(d.deviation),0)/diffs.length;
-  const positiveDevs = diffs.filter(d=> d.deviation>0).length;
-  const negativeDevs = diffs.filter(d=> d.deviation<0).length;
-
-  return {
-    minDiff: {level: minDiff.level, diff: minDiff.diff},
-    maxDiff: {level: maxDiff.level, diff: maxDiff.diff},
-    avgDiff: Math.round(avgDiff*100)/100,
-    medianDiff: Math.round(median*100)/100,
-    stdDevDiff: Math.round(stdDev*100)/100,
-    avgDev: Math.round(avgDev*1000)/1000,
-    positiveDevs,
-    negativeDevs,
-    totalComparisons: diffs.length
-  };
-}
-
-/* --------------------------
-   6. GRAPH (SVG) "Level vs XP Requirement"
----------------------------*/
-function makeGraphData(requirements) {
-  // вернём массив точек: [ {x, y}, ... ] 
-  // где x=(level-8), y=(требуемый xp)
-  // Чтобы более-менее поместилось, масштабируем y.
-  const points = [];
-  for (let lvl=8; lvl<150; lvl++){
-    if(requirements[lvl] !== undefined) {
-      points.push({lvl, xp:requirements[lvl]});
-    }
-  }
-  return points;
-}
-
-/* --------------------------
-   7. REACT COMPONENT
----------------------------*/
-function App() {
-  const [theme, setTheme] = useState('light');  // light | dark
-  const [knownPoints, setKnownPoints] = useState(loadKnownPoints);
-
-  // основные поля ввода
-  const [level, setLevel] = useState('');
-  const [xpPerDay, setXpPerDay] = useState('');
-  const [baseInc, setBaseInc] = useState('224');
-  const [decPerc, setDecPerc] = useState('0.01');
-  const [errorLevel, setErrorLevel] = useState(false);
-  const [errorXp, setErrorXp] = useState(false);
-  // для "Через X дней" 
-  const [customDays, setCustomDays] = useState('');
-  const [customResult, setCustomResult] = useState('');
-
-  // при старте проверим localStorage для темы
-  useEffect(()=>{
-    const t = localStorage.getItem("themeV2");
-    if(t==='dark'||t==='light') {
-      setTheme(t);
-    }
-  },[]);
-  // при переключении темы - пишем в localStorage + меняем body.className
-  useEffect(()=>{
-    document.body.className = theme;
-    localStorage.setItem("themeV2", theme);
-  },[theme]);
-
-  // когда knownPoints меняется, сохраняем
-  useEffect(()=>{
-    saveKnownPoints(knownPoints);
-  }, [knownPoints]);
-
-  // валидация на лету
-  function handleLevelChange(e) {
-    const val = e.target.value;
-    setLevel(val);
-    const num = parseInt(val);
-    if(!num || num<8 || num>150) setErrorLevel(true);
-    else setErrorLevel(false);
-  }
-  function handleXpChange(e) {
-    const val = e.target.value;
-    setXpPerDay(val);
-    const num = parseInt(val);
-    if(!num && num!==0) setErrorXp(true);
-    else if(num<0) setErrorXp(true);
-    else setErrorXp(false);
-  }
-
-  // главный расчёт
-  const [output, setOutput] = useState(''); // текстовый вывод
-
-  function onCalculateMain() {
-    // проверяем ошибки
-    if(errorLevel || errorXp) return;
-    const lvl = parseInt(level);
-    const xpDay = parseInt(xpPerDay);
-    const inc = parseFloat(baseInc);
-    const dec = parseFloat(decPerc);
-    if(isNaN(lvl)||isNaN(xpDay)||isNaN(inc)||isNaN(dec)) return;
-
-    const daysLeft = calculateDaysLeft();
-    // получим требования
-    const req = calculateLevelRequirements(
-      knownPoints[8] || 1620,
-      inc,
-      dec
-    );
-    const forecast = forecastProgress(lvl, daysLeft, xpDay, req);
-    const stats = calculateStats(req, knownPoints);
-
-    let txt = "";
-    txt += "=== Результаты Прогноза (до 28.02.2025) ===\n";
-    txt += "Текущий уровень: "+forecast.startLevel+"\n";
-    txt += "Осталось дней: "+forecast.days_left+"\n";
-    txt += "XP в день: "+forecast.daily_xp+"\n";
-    txt += "Всего доступно XP: "+formatNumber(forecast.totalXP)+"\n";
-    txt += "Вы сможете прокачаться до уровня: "+forecast.targetLevel+"\n";
-    txt += "Потрачено XP: "+formatNumber(forecast.spentXP)+"\n";
-    txt += "Останется XP: "+formatNumber(forecast.remainingXP)+"\n";
-    txt += "След. уровень требует: "+formatNumber(forecast.nextLevelRequired)+"\n";
-    txt += "Не хватает: "+formatNumber(forecast.missingForNext)+"\n\n";
-    
-    if(stats){
-      txt += "=== Статистика Сравнения (временные изменения!) ===\n";
-      txt += "Мин. разница: "+Math.abs(stats.minDiff.diff)+" XP (ур. "+stats.minDiff.level+")\n";
-      txt += "Макс. разница: "+Math.abs(stats.maxDiff.diff)+" XP (ур. "+stats.maxDiff.level+")\n";
-      txt += "Средняя разница: "+stats.avgDiff+"\n";
-      txt += "Медиана: "+stats.medianDiff+"\n";
-      txt += "Стд. отклонение: "+stats.stdDevDiff+"\n";
-      txt += "Средн. отклонение: "+stats.avgDev+"%\n";
-      txt += "Положит. отклонений: "+stats.positiveDevs+" из "+stats.totalComparisons+"\n";
-      txt += "Отриц. отклонений: "+stats.negativeDevs+" из "+stats.totalComparisons+"\n\n";
-    } else {
-      txt += "Нет данных для сравнения.\n\n";
-    }
-
-    setOutput(txt);
-  }
-
-  // "Через X дней"
-  function onCalculateCustomDays() {
-    if(errorLevel || errorXp) return;
-    const lvl = parseInt(level);
-    const xpDay = parseInt(xpPerDay);
-    const inc = parseFloat(baseInc);
-    const dec = parseFloat(decPerc);
-    const cust = parseInt(customDays);
-    if(isNaN(lvl)||isNaN(xpDay)||isNaN(inc)||isNaN(dec)||isNaN(cust)) {
-      setCustomResult("Введите корректные данные");
-      return;
-    }
-    const req = calculateLevelRequirements(
-      knownPoints[8] || 1620,
-      inc,
-      dec
-    );
-    const forecast = forecastProgress(lvl, cust, xpDay, req);
-    const txt = `Через ${cust} дней вы будете примерно на уровне ${forecast.targetLevel}, 
-XP останется: ${formatNumber(forecast.remainingXP)}, 
-не хватает: ${formatNumber(forecast.missingForNext)}`;
-    setCustomResult(txt);
-  }
-
-  // Функции изменения knownPoints (добавить / удалить)
-  const [newKPLevel, setNewKPLevel] = useState('');
-  const [newKPXp, setNewKPXp] = useState('');
-
-  function handleAddKP() {
-    const lvl = parseInt(newKPLevel);
-    const xp = parseInt(newKPXp);
-    if(!lvl || !xp) return;
-    // обновим
-    setKnownPoints(prev => {
-      const updated = {...prev};
-      updated[lvl] = xp;
-      return updated;
+    // Очищаем содержимое заголовка и создаём для каждого символа <span>
+    textTitle.innerHTML = '';
+    chars.forEach(char => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.setAttribute('data-char', char);
+      span.style.display = 'inline-block';
+      if (!config.stroke) {
+        span.style.color = config.textColor;
+      }
+      textTitle.appendChild(span);
+      spans.push(span);
     });
-    setNewKPLevel('');
-    setNewKPXp('');
-  }
-  function handleDelKP(lvl) {
-    setKnownPoints(prev => {
-      const updated = {...prev};
-      delete updated[lvl];
-      return updated;
-    });
-  }
 
-  // Переключение темы
-  function toggleTheme() {
-    setTheme(prev => (prev==='light' ? 'dark' : 'light'));
-  }
+    // Начальные размеры текста и переменные для анимации
+    let fontSize = config.minFontSize;
+    let scaleY = 1;
+    let lineHeight = 1;
 
-  // Построим для svg-графика
-  const reqForGraph = calculateLevelRequirements(
-    knownPoints[8]||1620,
-    parseFloat(baseInc) || 224,
-    parseFloat(decPerc) || 0.01
-  );
-  const graphData = makeGraphData(reqForGraph);
-  // найдём maxXP
-  const maxXP = graphData.reduce((m,p)=> p.xp>m?p.xp:m, 0);
-  const w = 600, h=300, pad=30;
-  // Собираем path
-  function buildPath() {
-    if(graphData.length<2) return "";
-    const scaleX = (w-pad*2)/(142); // уровень (8..150) => 142 шагов
-    const scaleY = (h-pad*2)/maxXP;
-    let d = "";
-    graphData.forEach((p,i)=>{
-      const xVal = (p.lvl-8)*scaleX+pad;
-      const yVal = h-pad - p.xp*scaleY;
-      if(i===0) d = `M ${xVal},${yVal}`;
-      else d += ` L ${xVal},${yVal}`;
-    });
-    return d;
-  }
-  const pathD = buildPath();
+    // Координаты сглаженной позиции "мыши" и текущего курсора
+    const mouse = { x: 0, y: 0 };
+    const cursor = { x: 0, y: 0 };
 
-  // Проверим, можно ли нажимать кнопку
-  const canCalculate = !errorLevel && !errorXp && level!=='' && xpPerDay!=='';
-
-  return (
-    <div className="container">
-      <div className="header">
-        <h2 className="title">XP Calculator (React)</h2>
-        <button className="theme-btn" onClick={toggleTheme}>
-          {theme==='light' ? 'Dark Mode' : 'Light Mode'}
-        </button>
-      </div>
-
-      {/* ВВОД */}
-      <div className="section">
-        <label className="label">Ваш текущий уровень (8..150)</label>
-        <input 
-          className={`inputField ${errorLevel?'error':''}`}
-          type="number"
-          value={level}
-          onChange={handleLevelChange}
-          placeholder="Например, 42"
-        />
-
-        <label className="label">Сколько XP вы получаете в день</label>
-        <input 
-          className={`inputField ${errorXp?'error':''}`}
-          type="number"
-          value={xpPerDay}
-          onChange={handleXpChange}
-          placeholder="Например, 1000"
-        />
-
-        <label className="label">Базовое увеличение XP между уровнями</label>
-        <input 
-          className="inputField"
-          type="number"
-          step="0.1"
-          value={baseInc}
-          onChange={(e)=>setBaseInc(e.target.value)}
-        />
-
-        <label className="label">Процент уменьшения базового прироста</label>
-        <input 
-          className="inputField"
-          type="number"
-          step="0.01"
-          value={decPerc}
-          onChange={(e)=>setDecPerc(e.target.value)}
-        />
-
-        <button className="btn-primary"
-          disabled={!canCalculate}
-          onClick={onCalculateMain}
-        >
-          Рассчитать (до 28.02.2025)
-        </button>
-      </div>
-
-      {/* Блок "через X дней" */}
-      <div className="section" style={{border:'1px solid #ccc', padding:'10px', borderRadius:'6px'}}>
-        <label className="label">Через сколько дней посчитать уровень?</label>
-        <input 
-          type="number"
-          className="inputField"
-          placeholder="Например, 30"
-          value={customDays}
-          onChange={(e)=>setCustomDays(e.target.value)}
-        />
-        <button 
-          className="btn-primary" 
-          style={{marginTop:'6px'}}
-          disabled={!canCalculate || customDays==='' }
-          onClick={onCalculateCustomDays}
-        >
-          Посчитать "Через X дней"
-        </button>
-        {customResult && (
-          <div className="output-area" style={{marginTop:'10px'}}>
-            {customResult}
-          </div>
-        )}
-      </div>
-
-      {/* Вывод расчёта */}
-      {output && (
-        <div className="output-area">
-          {output}
-        </div>
-      )}
-
-      {/* Редактирование Known Points */}
-      <div className="section" style={{marginTop:'20px', background:'#fafafa', padding:'10px', borderRadius:'6px'}}>
-        <p style={{fontWeight:'600'}}>Известные точки (данные "в коде" + локальные изменения)</p>
-        <p style={{fontSize:'0.9rem', marginBottom:'10px'}}>
-          Изменения сохранятся <strong>только</strong> в вашем браузере (LocalStorage). При сбросе или на другом
-          устройстве будет список "по умолчанию".
-        </p>
-        <div className="known-points">
-          {Object.entries(knownPoints).sort((a,b)=> parseInt(a[0]) - parseInt(b[0]))
-            .map(([lvl, xp])=>(
-            <div className="kp-item" key={lvl}>
-              <span>Уровень {lvl}, XP = {xp}</span>
-              <div className="kp-buttons">
-                <button onClick={()=> handleDelKP(lvl)}>Удалить</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{marginTop:'10px'}}>
-          <p style={{margin:'6px 0 4px'}}>Добавить / изменить</p>
-          <input 
-            type="number" 
-            placeholder="Уровень" 
-            className="inputField" 
-            value={newKPLevel} 
-            onChange={(e)=>setNewKPLevel(e.target.value)}
-          />
-          <input 
-            type="number" 
-            placeholder="XP" 
-            className="inputField" 
-            value={newKPXp} 
-            onChange={(e)=>setNewKPXp(e.target.value)}
-          />
-          <button onClick={handleAddKP} className="btn-primary">
-            Сохранить
-          </button>
-        </div>
-      </div>
-
-      {/* График */}
-      <Graph requirements={reqForGraph}/>
-    </div>
-  );
-}
-
-/* --------------------------
-   КОМПОНЕНТА ГРАФИКА
----------------------------*/
-function Graph({ requirements }) {
-  // генерим массив точек
-  const points = [];
-  for(let lvl=8; lvl<150; lvl++){
-    if(requirements[lvl]!==undefined) {
-      points.push({ level:lvl, xp:requirements[lvl] });
+    // Инициализация позиции мыши – в центре контейнера
+    function initMousePosition() {
+      const rect = container.getBoundingClientRect();
+      mouse.x = rect.left + rect.width / 2;
+      mouse.y = rect.top + rect.height / 2;
+      cursor.x = mouse.x;
+      cursor.y = mouse.y;
     }
-  }
-  if(points.length<2) {
-    return null;
-  }
-  const maxXP = points.reduce((acc,p)=> p.xp>acc?p.xp:acc, 0);
-  // размеры
-  const W=600, H=300, PAD=30;
-  const scaleX = (W-PAD*2)/(142); // ~ уровень 8..150 => 142 шагов
-  const scaleY = (H-PAD*2)/maxXP;
+    initMousePosition();
 
-  let pathD = "";
-  points.forEach((p,i)=>{
-    const xVal = (p.level-8)*scaleX + PAD;
-    const yVal = (H-PAD) - p.xp*scaleY;
-    if(i===0) pathD=`M${xVal},${yVal}`;
-    else pathD += ` L${xVal},${yVal}`;
-  });
+    // Обработчики для движения мыши и касаний
+    window.addEventListener('mousemove', (e) => {
+      cursor.x = e.clientX;
+      cursor.y = e.clientY;
+    });
+    window.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      cursor.x = t.clientX;
+      cursor.y = t.clientY;
+    }, { passive: false });
 
-  return (
-    <div className="graph-container">
-      <div className="graph-title">График: Уровень vs XP Requirement</div>
-      <svg width={W} height={H} style={{background:'#fff'}}>
-        {/* Оси */}
-        {/* Ось X */}
-        <line 
-          x1={PAD} y1={H-PAD} 
-          x2={W-PAD} y2={H-PAD}
-          stroke="#555" strokeWidth="1"
-        />
-        {/* Ось Y */}
-        <line 
-          x1={PAD} y1={PAD}
-          x2={PAD} y2={H-PAD}
-          stroke="#555" strokeWidth="1"
-        />
-        {/* path */}
-        <path d={pathD} fill="no
+    // Функция для расчёта расстояния между двумя точками
+    function dist(a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Функция установки размера текста в зависимости от размеров контейнера
+    function setSize() {
+      const containerRect = container.getBoundingClientRect();
+      let newFontSize = containerRect.width / (chars.length / 2);
+      newFontSize = Math.max(newFontSize, config.minFontSize);
+      fontSize = newFontSize;
+      scaleY = 1;
+      lineHeight = 1;
+      
+      textTitle.style.fontSize = fontSize + 'px';
+      textTitle.style.lineHeight = lineHeight;
+      textTitle.style.transform = `scale(1, ${scaleY})`;
+
+      if (config.scale) {
+        requestAnimationFrame(() => {
+          const textRect = textTitle.getBoundingClientRect();
+          if (textRect.height > 0) {
+            const yRatio = containerRect.height / textRect.height;
+            scaleY = yRatio;
+            lineHeight = yRatio;
+            textTitle.style.lineHeight = lineHeight;
+            textTitle.style.transform = `scale(1, ${scaleY})`;
+          }
+        });
+      }
+    }
+    setSize();
+    window.addEventListener('resize', setSize);
+
+    // Основной цикл анимации
+    function animate() {
+      // Сглаженное перемещение: позиция "мыши" плавно приближается к курсору
+      mouse.x += (cursor.x - mouse.x) / 15;
+      mouse.y += (cursor.y - mouse.y) / 15;
+
+      const titleRect = textTitle.getBoundingClientRect();
+      const maxDist = titleRect.width / 2;
+
+      // Для каждого символа рассчитываем его положение и изменяем параметры переменного шрифта
+      spans.forEach(span => {
+        const rect = span.getBoundingClientRect();
+        const charCenter = {
+          x: rect.x + rect.width / 2,
+          y: rect.y + rect.height / 2
+        };
+        const d = dist(mouse, charCenter);
+
+        // Функция для расчёта значения оси в зависимости от расстояния
+        function getAttr(distance, minVal, maxVal) {
+          const val = maxVal - Math.abs((maxVal * distance) / maxDist);
+          return Math.max(minVal, val + minVal);
+        }
+
+        const wdth = config.width ? Math.floor(getAttr(d, 5, 200)) : 100;
+        const wght = config.weight ? Math.floor(getAttr(d, 100, 900)) : 400;
+        const italVal = config.italic ? parseFloat(getAttr(d, 0, 1).toFixed(2)) : 0;
+        const alphaVal = config.alpha ? parseFloat(getAttr(d, 0, 1).toFixed(2)) : 1;
+
+        span.style.opacity = alphaVal;
+        span.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
+      });
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
