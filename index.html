@@ -1,215 +1,322 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TextPressure без React – Центрированный текст</title>
+  <title>TREEWOOD - Glitch Effect</title>
   <style>
-    /* Подключаем шрифт через @font-face */
     @font-face {
       font-family: 'Compressa VF';
       src: url('https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2') format('woff2');
       font-style: normal;
     }
-    /* Базовые стили для страницы */
+    
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       background: #000;
+      overflow: hidden;
+      font-family: 'Compressa VF', monospace;
     }
-    /* Центрированный контейнер с ограниченной шириной и отступами */
+    
     .container {
       position: relative;
-      max-width: 800px;       /* Максимальная ширина контейнера */
-      margin: 0 auto;         /* Центрирование по горизонтали */
-      padding: 20px;          /* Отступы от краёв */
-      height: 100vh;          /* Высота на всю видимую область */
-      box-sizing: border-box; /* Учитываем padding в ширине */
-      background: #000;
+      width: 100%;
+      height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
+      background-color: #000000;
     }
-    /* Стили для заголовка с текстом */
-    .text-pressure-title {
-      font-family: 'Compressa VF', sans-serif;
-      text-transform: uppercase;
-      margin: 0;
-      text-align: center;
-      user-select: none;
-      white-space: nowrap;
-      font-weight: 100;
-      width: 100%;
-    }
-    /* Если нужно распределить символы по всей ширине контейнера */
-    .flex {
-      display: flex;
-      justify-content: space-between;
-    }
-    /* Стили для эффекта обводки (stroke), если требуется */
-    .stroke span {
-      position: relative;
-      color: #FFFFFF; /* обычный цвет текста */
-    }
-    .stroke span::after {
-      content: attr(data-char);
+    
+    canvas {
+      display: block;
       position: absolute;
-      left: 0;
       top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .text-overlay {
+      position: absolute;
+      z-index: 1;
+      font-size: 10vw;
+      font-weight: 700;
+      text-transform: uppercase;
       color: transparent;
-      z-index: -1;
-      -webkit-text-stroke-width: 3px;
-      -webkit-text-stroke-color: #FF0000;
+      mix-blend-mode: exclusion;
+      user-select: none;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+    
+    .outer-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%);
+      z-index: this2;
     }
   </style>
 </head>
 <body>
-  <div class="container" id="container">
-    <h1 id="textTitle" class="text-pressure-title flex">
-      <!-- Символы будут добавлены через скрипт -->
-    </h1>
+  <div class="container">
+    <canvas id="glitchCanvas"></canvas>
+    <div class="text-overlay" id="textOverlay">TREEWOOD</div>
+    <div class="outer-vignette"></div>
   </div>
 
   <script>
-    // Конфигурация эффекта (при необходимости можно изменить параметры)
+    // Configuration
     const config = {
-      text: 'TREEWOOD',              // Текст для отображения
-      fontFamily: 'Compressa VF',
-      fontUrl: 'https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2',
-      width: true,                   // Изменение оси wdth
-      weight: true,                  // Изменение оси wght
-      italic: true,                  // Изменение оси ital
-      alpha: false,                  // Изменение прозрачности (opacity)
-      flex: true,                    // Распределение символов по всей ширине
-      stroke: false,                 // Эффект обводки (если true, применяется псевдоэлемент ::after)
-      scale: false,                  // Масштабирование по высоте (подгонка по контейнеру)
-      textColor: '#FFFFFF',
-      strokeColor: '#FF0000',
-      minFontSize: 24
+      text: 'TREEWOOD',
+      glitchColors: ['#2b4539', '#61dca3', '#61b3dc'],
+      glitchSpeed: 50,
+      smooth: true,
+      fontSize: 16,
+      charWidth: 10,
+      charHeight: 20
     };
-
-    // Получаем ссылки на элементы
-    const container = document.getElementById('container');
-    const textTitle = document.getElementById('textTitle');
-    const chars = config.text.split('');
-    const spans = [];
-
-    // Очищаем содержимое заголовка и создаём для каждого символа <span>
-    textTitle.innerHTML = '';
-    chars.forEach(char => {
-      const span = document.createElement('span');
-      span.textContent = char;
-      span.setAttribute('data-char', char);
-      span.style.display = 'inline-block';
-      if (!config.stroke) {
-        span.style.color = config.textColor;
-      }
-      textTitle.appendChild(span);
-      spans.push(span);
-    });
-
-    // Начальные размеры текста и переменные для анимации
-    let fontSize = config.minFontSize;
-    let scaleY = 1;
-    let lineHeight = 1;
-
-    // Координаты сглаженной позиции "мыши" и текущего курсора
-    const mouse = { x: 0, y: 0 };
-    const cursor = { x: 0, y: 0 };
-
-    // Инициализация позиции мыши – в центре контейнера
-    function initMousePosition() {
-      const rect = container.getBoundingClientRect();
-      mouse.x = rect.left + rect.width / 2;
-      mouse.y = rect.top + rect.height / 2;
-      cursor.x = mouse.x;
-      cursor.y = mouse.y;
+    
+    // Setup
+    const canvas = document.getElementById('glitchCanvas');
+    const textOverlay = document.getElementById('textOverlay');
+    const context = canvas.getContext('2d');
+    
+    // Variables
+    let letters = [];
+    let grid = { columns: 0, rows: 0 };
+    let lastGlitchTime = Date.now();
+    let animationFrame;
+    
+    const lettersAndSymbols = [
+      'T', 'R', 'E', 'E', 'W', 'O', 'O', 'D', // Prioritize TREEWOOD letters
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+      'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+      '!', '@', '#', '$', '&', '*', '(', ')', '-', '_', '+', '=', '/',
+      '[', ']', '{', '}', ';', ':', '<', '>', ',', '0', '1', '2', '3',
+      '4', '5', '6', '7', '8', '9'
+    ];
+    
+    // Utility functions
+    function getRandomChar() {
+      return lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)];
     }
-    initMousePosition();
-
-    // Обработчики для движения мыши и касаний
-    window.addEventListener('mousemove', (e) => {
-      cursor.x = e.clientX;
-      cursor.y = e.clientY;
-    });
-    window.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      cursor.x = t.clientX;
-      cursor.y = t.clientY;
-    }, { passive: false });
-
-    // Функция для расчёта расстояния между двумя точками
-    function dist(a, b) {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      return Math.sqrt(dx * dx + dy * dy);
+    
+    function getRandomColor() {
+      return config.glitchColors[Math.floor(Math.random() * config.glitchColors.length)];
     }
-
-    // Функция установки размера текста в зависимости от размеров контейнера
-    function setSize() {
-      const containerRect = container.getBoundingClientRect();
-      let newFontSize = containerRect.width / (chars.length / 2);
-      newFontSize = Math.max(newFontSize, config.minFontSize);
-      fontSize = newFontSize;
-      scaleY = 1;
-      lineHeight = 1;
-      
-      textTitle.style.fontSize = fontSize + 'px';
-      textTitle.style.lineHeight = lineHeight;
-      textTitle.style.transform = `scale(1, ${scaleY})`;
-
-      if (config.scale) {
-        requestAnimationFrame(() => {
-          const textRect = textTitle.getBoundingClientRect();
-          if (textRect.height > 0) {
-            const yRatio = containerRect.height / textRect.height;
-            scaleY = yRatio;
-            lineHeight = yRatio;
-            textTitle.style.lineHeight = lineHeight;
-            textTitle.style.transform = `scale(1, ${scaleY})`;
-          }
-        });
-      }
-    }
-    setSize();
-    window.addEventListener('resize', setSize);
-
-    // Основной цикл анимации
-    function animate() {
-      // Сглаженное перемещение: позиция "мыши" плавно приближается к курсору
-      mouse.x += (cursor.x - mouse.x) / 15;
-      mouse.y += (cursor.y - mouse.y) / 15;
-
-      const titleRect = textTitle.getBoundingClientRect();
-      const maxDist = titleRect.width / 2;
-
-      // Для каждого символа рассчитываем его положение и изменяем параметры переменного шрифта
-      spans.forEach(span => {
-        const rect = span.getBoundingClientRect();
-        const charCenter = {
-          x: rect.x + rect.width / 2,
-          y: rect.y + rect.height / 2
-        };
-        const d = dist(mouse, charCenter);
-
-        // Функция для расчёта значения оси в зависимости от расстояния
-        function getAttr(distance, minVal, maxVal) {
-          const val = maxVal - Math.abs((maxVal * distance) / maxDist);
-          return Math.max(minVal, val + minVal);
-        }
-
-        const wdth = config.width ? Math.floor(getAttr(d, 5, 200)) : 100;
-        const wght = config.weight ? Math.floor(getAttr(d, 100, 900)) : 400;
-        const italVal = config.italic ? parseFloat(getAttr(d, 0, 1).toFixed(2)) : 0;
-        const alphaVal = config.alpha ? parseFloat(getAttr(d, 0, 1).toFixed(2)) : 1;
-
-        span.style.opacity = alphaVal;
-        span.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
+    
+    function hexToRgb(hex) {
+      const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+      hex = hex.replace(shorthandRegex, (m, r, g, b) => {
+        return r + r + g + g + b + b;
       });
-
-      requestAnimationFrame(animate);
+      
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
     }
-    animate();
+    
+    function interpolateColor(start, end, factor) {
+      const result = {
+        r: Math.round(start.r + (end.r - start.r) * factor),
+        g: Math.round(start.g + (end.g - start.g) * factor),
+        b: Math.round(start.b + (end.b - start.b) * factor),
+      };
+      return `rgb(${result.r}, ${result.g}, ${result.b})`;
+    }
+    
+    // Core functions
+    function calculateGrid(width, height) {
+      const columns = Math.ceil(width / config.charWidth);
+      const rows = Math.ceil(height / config.charHeight);
+      return { columns, rows };
+    }
+    
+    function initializeLetters(columns, rows) {
+      grid = { columns, rows };
+      const totalLetters = columns * rows;
+      letters = Array.from({ length: totalLetters }, () => ({
+        char: getRandomChar(),
+        color: getRandomColor(),
+        targetColor: getRandomColor(),
+        colorProgress: 1,
+      }));
+    }
+    
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      
+      const { columns, rows } = calculateGrid(rect.width, rect.height);
+      initializeLetters(columns, rows);
+      
+      // Create text mask for TREEWOOD
+      createTextMask();
+      
+      drawLetters();
+    }
+    
+    // Create a mask for the TREEWOOD text
+    function createTextMask() {
+      textOverlay.style.opacity = 0;
+      
+      const treeWoodChars = config.text.split('');
+      const textMaskPositions = [];
+      
+      const textWidth = canvas.width * 0.8;
+      const charWidth = textWidth / treeWoodChars.length;
+      const startX = (canvas.width - textWidth) / 2;
+      const centerY = canvas.height / 2;
+      
+      treeWoodChars.forEach((char, i) => {
+        const x = startX + i * charWidth;
+        textMaskPositions.push({
+          char,
+          x: x / config.charWidth,
+          y: centerY / config.charHeight,
+          width: charWidth / config.charWidth
+        });
+      });
+      
+      // Find letter indices for the TREEWOOD text positions
+      textMaskPositions.forEach(pos => {
+        for (let w = 0; w < pos.width; w++) {
+          const col = Math.floor(pos.x + w);
+          const row = Math.floor(pos.y);
+          const index = row * grid.columns + col;
+          
+          if (index >= 0 && index < letters.length) {
+            letters[index].isTreewood = true;
+            letters[index].treewoodChar = pos.char;
+            letters[index].originalChar = letters[index].char;
+          }
+        }
+      });
+    }
+    
+    function drawLetters() {
+      if (letters.length === 0) return;
+      
+      const { width, height } = canvas.getBoundingClientRect();
+      context.clearRect(0, 0, width, height);
+      context.font = `${config.fontSize}px monospace`;
+      context.textBaseline = 'top';
+      
+      letters.forEach((letter, index) => {
+        const x = (index % grid.columns) * config.charWidth;
+        const y = Math.floor(index / grid.columns) * config.charHeight;
+        
+        context.fillStyle = letter.color;
+        context.fillText(letter.char, x, y);
+      });
+    }
+    
+    function updateLetters() {
+      if (letters.length === 0) return;
+      
+      const updateCount = Math.max(1, Math.floor(letters.length * 0.05));
+      
+      for (let i = 0; i < updateCount; i++) {
+        const index = Math.floor(Math.random() * letters.length);
+        if (!letters[index]) continue;
+        
+        // Special handling for TREEWOOD letters
+        if (letters[index].isTreewood) {
+          // 80% chance to show the correct TREEWOOD letter, 20% chance to glitch
+          if (Math.random() < 0.8) {
+            letters[index].char = letters[index].treewoodChar;
+          } else {
+            letters[index].char = getRandomChar();
+          }
+        } else {
+          letters[index].char = getRandomChar();
+        }
+        
+        letters[index].targetColor = getRandomColor();
+        
+        if (!config.smooth) {
+          letters[index].color = letters[index].targetColor;
+          letters[index].colorProgress = 1;
+        } else {
+          letters[index].colorProgress = 0;
+        }
+      }
+    }
+    
+    function handleSmoothTransitions() {
+      let needsRedraw = false;
+      
+      letters.forEach((letter) => {
+        if (letter.colorProgress < 1) {
+          letter.colorProgress += 0.05;
+          if (letter.colorProgress > 1) letter.colorProgress = 1;
+          
+          const startRgb = hexToRgb(letter.color);
+          const endRgb = hexToRgb(letter.targetColor);
+          
+          if (startRgb && endRgb) {
+            letter.color = interpolateColor(startRgb, endRgb, letter.colorProgress);
+            needsRedraw = true;
+          }
+        }
+      });
+      
+      if (needsRedraw) {
+        drawLetters();
+      }
+    }
+    
+    function animate() {
+      const now = Date.now();
+      
+      if (now - lastGlitchTime >= config.glitchSpeed) {
+        updateLetters();
+        drawLetters();
+        lastGlitchTime = now;
+      }
+      
+      if (config.smooth) {
+        handleSmoothTransitions();
+      }
+      
+      animationFrame = requestAnimationFrame(animate);
+    }
+    
+    // Initialize and start
+    function init() {
+      resizeCanvas();
+      animate();
+      
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          cancelAnimationFrame(animationFrame);
+          resizeCanvas();
+          animate();
+        }, 100);
+      });
+    }
+    
+    // Start when everything is loaded
+    window.addEventListener('load', init);
   </script>
 </body>
 </html>
